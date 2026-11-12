@@ -1,0 +1,73 @@
+name: Проверка Windows-обработчика
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/runner-capabilities.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-runner:
+    name: Проверка возможностей обработчика
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Получить код проекта
+        uses: actions/checkout@v4
+
+      - name: Собрать сведения об обработчике
+        shell: pwsh
+        run: |
+          function Get-ToolVersion {
+            param(
+              [string]$Command,
+              [string[]]$Arguments = @("--version")
+            )
+
+            if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {
+              return "не найден"
+            }
+
+            return ((& $Command @Arguments 2>&1 | Select-Object -First 1).ToString())
+          }
+
+          $os = Get-CimInstance Win32_OperatingSystem
+          $computer = Get-CimInstance Win32_ComputerSystem
+
+          $capabilities = [ordered]@{
+            "Имя обработчика" = $env:RUNNER_NAME
+            "Операционная система" = $os.Caption
+            "Версия ОС" = $os.Version
+            "Архитектура" = $env:RUNNER_ARCH
+            "Логические процессоры" = $computer.NumberOfLogicalProcessors
+            "PowerShell" = $PSVersionTable.PSVersion.ToString()
+            "Git" = (Get-ToolVersion "git")
+            ".NET" = (Get-ToolVersion "dotnet")
+            "Node.js" = (Get-ToolVersion "node")
+            "Python" = (Get-ToolVersion "python")
+            "Java" = (Get-ToolVersion "java" @("-version"))
+          }
+
+          $report = $capabilities.GetEnumerator() |
+            ForEach-Object { "{0}: {1}" -f $_.Key, $_.Value }
+
+          $report | Tee-Object -FilePath runner-capabilities.txt
+
+          "## Возможности Windows-обработчика" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| Возможность | Значение |" >> $env:GITHUB_STEP_SUMMARY
+          "| --- | --- |" >> $env:GITHUB_STEP_SUMMARY
+          $capabilities.GetEnumerator() |
+            ForEach-Object { "| $($_.Key) | $($_.Value) |" } >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Сохранить отчёт о возможностях
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-runner-capabilities
+          path: runner-capabilities.txt
+          retention-days: 7
+

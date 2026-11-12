@@ -27,3 +27,7 @@
 - Markdown;
 - GitHub Projects;
 - GitHub Wiki.
+
+## Автоматизация
+
+- [Лабораторная работа 4.0: обработчик сборочной линии](docs/lab-4.0-runner.md)
