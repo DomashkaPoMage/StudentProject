@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Получить код проекта
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Собрать сведения об обработчике
         shell: pwsh
@@ -65,7 +65,7 @@ jobs:
             ForEach-Object { "| $($_.Key) | $($_.Value) |" } >> $env:GITHUB_STEP_SUMMARY
 
       - name: Сохранить отчёт о возможностях
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-runner-capabilities
           path: runner-capabilities.txt
