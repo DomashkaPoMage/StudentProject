@@ -5,7 +5,7 @@ var app = builder.Build();
 
 app.MapGet("/", () => Results.Ok(new
 {
-    title = "Интернет-магазин автозапчастей",
+    title = "Каталог автозапчастей Student Project",
     status = "ready"
 }));
 
