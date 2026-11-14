@@ -1,0 +1,150 @@
+name: CI/CD как код
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "tests/**"
+      - StudentProject.slnx
+      - Dockerfile
+      - .github/workflows/ci-cd.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deployment-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CONFIGURATION: Release
+  DOTNET_VERSION: 10.0.x
+  IMAGE_NAME: ghcr.io/domashkapomage/studentproject
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build - сборка и тестирование
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Получить код проекта
+        uses: actions/checkout@v7
+
+      - name: Установить .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Восстановить зависимости
+        run: dotnet restore StudentProject.slnx
+
+      - name: Собрать решение
+        run: >-
+          dotnet build StudentProject.slnx
+          --configuration ${{ env.CONFIGURATION }}
+          --no-restore
+
+      - name: Выполнить автоматические тесты
+        run: >-
+          dotnet run
+          --project tests/StudentProject.Tests/StudentProject.Tests.csproj
+          --configuration ${{ env.CONFIGURATION }}
+          --no-build
+          -- TestResults/test-results.xml
+
+      - name: Подготовить пакет поставки
+        shell: bash
+        run: |
+          mkdir -p artifacts/drop/web
+          dotnet publish src/StudentProject.Web/StudentProject.Web.csproj \
+            --configuration "${CONFIGURATION}" \
+            --no-restore \
+            --output artifacts/drop/web
+          cp Dockerfile artifacts/drop/Dockerfile
+          cp TestResults/test-results.xml artifacts/drop/test-results.xml
+          cat > artifacts/drop/deployment-manifest.json <<EOF
+          {
+            "repository": "${GITHUB_REPOSITORY}",
+            "commit": "${GITHUB_SHA}",
+            "runNumber": "${GITHUB_RUN_NUMBER}"
+          }
+          EOF
+
+      - name: Опубликовать артефакт сборки
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-drop
+          path: artifacts/drop
+          retention-days: 7
+
+  deploy:
+    name: Deploy - публикация контейнера
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://github.com/orgs/DomashkaPoMage/packages/container/studentproject
+
+    steps:
+      - name: Загрузить артефакт сборки
+        uses: actions/download-artifact@v8
+        with:
+          name: build-drop
+          path: deployment
+
+      - name: Собрать контейнер из артефакта
+        run: |
+          docker build \
+            --tag "${IMAGE_NAME}:${GITHUB_SHA}" \
+            --tag "${IMAGE_NAME}:latest" \
+            deployment
+
+      - name: Проверить контейнер перед публикацией
+        shell: bash
+        run: |
+          container_id=$(docker run --detach --publish 8080:8080 "${IMAGE_NAME}:${GITHUB_SHA}")
+          trap 'docker rm --force "${container_id}" >/dev/null 2>&1 || true' EXIT
+
+          for attempt in {1..20}; do
+            if curl --fail --silent http://localhost:8080/health; then
+              echo "Проверка работоспособности выполнена успешно."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs "${container_id}"
+          exit 1
+
+      - name: Войти в GitHub Container Registry
+        run: >-
+          echo "${{ secrets.GITHUB_TOKEN }}" |
+          docker login ghcr.io
+          --username "${{ github.actor }}"
+          --password-stdin
+
+      - name: Опубликовать контейнер
+        run: |
+          docker push "${IMAGE_NAME}:${GITHUB_SHA}"
+          docker push "${IMAGE_NAME}:latest"
+
+      - name: Добавить сведения о поставке в сводку
+        shell: bash
+        run: |
+          {
+            echo "## Поставка выполнена"
+            echo
+            echo "- Среда: production"
+            echo "- Образ: \`${IMAGE_NAME}:${GITHUB_SHA}\`"
+            echo "- Артефакт сборки: build-drop"
+            echo "- Проверка: /health успешно"
+          } >> "${GITHUB_STEP_SUMMARY}"

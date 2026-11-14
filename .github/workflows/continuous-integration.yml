@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - "**/*.md"
+    paths:
+      - "src/**"
+      - "tests/**"
+      - StudentProject.slnx
+      - .github/workflows/continuous-integration.yml
   pull_request:
     branches:
       - main
