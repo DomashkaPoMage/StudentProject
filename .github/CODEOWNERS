@@ -1,0 +1,15 @@
+# Руководитель проекта отвечает за репозиторий целиком.
+* @muscateel123
+
+# Backend: бизнес-логика каталога, корзины и заказов.
+/src/StudentProject.Web/Domain/ @6Cerp9
+
+# Frontend/API: пользовательские сценарии и точки входа приложения.
+/src/StudentProject.Web/Program.cs @andryxach123
+
+# QA: автоматические тесты и тестовые результаты.
+/tests/ @BorisLarkin
+
+# DevOps: сборка, поставка и контейнеризация.
+/.github/workflows/ @rigr1
+/Dockerfile @rigr1
