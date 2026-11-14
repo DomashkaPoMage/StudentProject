@@ -1,0 +1,98 @@
+name: Непрерывная интеграция
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CONFIGURATION: Release
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-test:
+    name: Сборка и тестирование
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Получить код проекта
+        uses: actions/checkout@v7
+
+      - name: Установить .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Восстановить зависимости
+        run: dotnet restore StudentProject.slnx
+
+      - name: Собрать приложение
+        run: >-
+          dotnet build StudentProject.slnx
+          --configuration ${{ env.CONFIGURATION }}
+          --no-restore
+
+      - name: Выполнить автоматические тесты
+        run: >-
+          dotnet run
+          --project tests/StudentProject.Tests/StudentProject.Tests.csproj
+          --configuration ${{ env.CONFIGURATION }}
+          --no-build
+          -- TestResults/test-results.xml
+
+      - name: Добавить результаты в сводку
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "TestResults/test-results.xml")) {
+            "## Результаты тестирования" >> $env:GITHUB_STEP_SUMMARY
+            "Файл результатов не создан." >> $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+
+          [xml]$results = Get-Content "TestResults/test-results.xml"
+          $run = $results.'test-run'
+
+          "## Результаты тестирования" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| Всего | Успешно | Ошибки |" >> $env:GITHUB_STEP_SUMMARY
+          "| ---: | ---: | ---: |" >> $env:GITHUB_STEP_SUMMARY
+          "| $($run.total) | $($run.passed) | $($run.failed) |" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Опубликовать веб-приложение
+        run: >-
+          dotnet publish src/StudentProject.Web/StudentProject.Web.csproj
+          --configuration ${{ env.CONFIGURATION }}
+          --no-restore
+          --output artifacts/web
+
+      - name: Сохранить приложение
+        uses: actions/upload-artifact@v7
+        with:
+          name: student-project-web
+          path: artifacts/web
+          retention-days: 7
+
+      - name: Сохранить результаты тестов
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults/test-results.xml
+          if-no-files-found: warn
+          retention-days: 7
