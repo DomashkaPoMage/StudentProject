@@ -1,0 +1,39 @@
+name: Техническая задача
+description: Запланировать разработку, тестирование или инфраструктурную работу
+title: "[Task]: "
+labels:
+  - "type: task"
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Цель
+      description: Какой измеримый результат должен быть получен?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Объём работы
+      placeholder: |
+        - Реализовать ...
+        - Добавить тесты ...
+        - Обновить документацию ...
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Критерии готовности
+      placeholder: |
+        - [ ] Изменения проверены
+        - [ ] Автоматические тесты проходят
+        - [ ] Документация обновлена
+    validations:
+      required: true
+  - type: input
+    id: dependencies
+    attributes:
+      label: Связанные задачи и зависимости
+      placeholder: "Blocked by #...; relates to #..."
+
