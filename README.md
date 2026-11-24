@@ -1,18 +1,41 @@
 # Student Project
 
-Учебный проект по дисциплине «Программная инженерия».
+Учебный проект по дисциплине «Программная инженерия», оформленный как рабочий
+репозиторий команды разработки интернет-магазина автозапчастей.
 
 ## Цель проекта
 
-Разработать информационную систему для автоматизации выбранной
-предметной области.
+Разработать и автоматически поставлять веб-сервис каталога и заказа
+автозапчастей, применяя планирование, ревью кода, тестирование и CI/CD.
 
 ## Основные возможности
 
-- регистрация пользователей;
-- хранение и обработка данных;
-- формирование отчётов;
-- управление задачами разработки.
+- информация о состоянии сервиса (`GET /health`);
+- описание каталога (`GET /`);
+- расчёт стоимости корзины (`GET /cart/total`);
+- автоматические тесты бизнес-логики;
+- публикация проверенного Docker-образа.
+
+## Быстрый запуск
+
+Требуется .NET 10 SDK.
+
+```powershell
+dotnet run --project src/StudentProject.Web/StudentProject.Web.csproj --urls http://localhost:8080
+```
+
+После запуска доступны:
+
+- `http://localhost:8080` — сведения о приложении;
+- `http://localhost:8080/health` — проверка работоспособности;
+- `http://localhost:8080/cart/total?price=1250&quantity=2` — расчёт корзины.
+
+## Проверка
+
+```powershell
+dotnet build StudentProject.slnx --configuration Release
+dotnet run --project tests/StudentProject.Tests/StudentProject.Tests.csproj --configuration Release
+```
 
 ## Команда
 
@@ -30,11 +53,24 @@
 
 ## Используемые технологии
 
-- Git;
-- GitHub;
-- Markdown;
-- GitHub Projects;
-- GitHub Wiki.
+- ASP.NET Core и .NET 10;
+- Git, GitHub Issues и GitHub Projects;
+- GitHub Actions;
+- Docker и GitHub Container Registry;
+- Markdown и GitHub Wiki.
+
+## Процесс разработки
+
+Изменения выполняются в отдельных ветках и попадают в `main` через Pull Request.
+Автоматическая проверка собирает приложение и запускает три теста. После успешной
+проверки CI/CD создаёт артефакт, проверяет контейнер через `/health` и публикует
+образ в GitHub Container Registry.
+
+Подробности:
+
+- [правила участия](CONTRIBUTING.md);
+- [рабочий процесс команды](docs/development-workflow.md);
+- [политика безопасности](SECURITY.md).
 
 ## Автоматизация
 

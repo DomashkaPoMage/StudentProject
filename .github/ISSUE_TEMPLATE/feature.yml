@@ -1,0 +1,41 @@
+name: Новая возможность
+description: Предложить пользовательскую функцию
+title: "[Feature]: "
+labels:
+  - "type: feature"
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Проблема пользователя
+      description: Какую реальную потребность должна закрыть функция?
+    validations:
+      required: true
+  - type: textarea
+    id: story
+    attributes:
+      label: Пользовательская история
+      placeholder: Как пользователь, я хочу ..., чтобы ...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Предлагаемое решение
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии приёмки
+      placeholder: |
+        - [ ] При условии ..., когда ..., тогда ...
+        - [ ] Ошибка обрабатывается и объясняется пользователю
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Ограничения и зависимости
+      description: Связанные задачи, внешние сервисы, безопасность и производительность.
+
