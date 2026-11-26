@@ -1,4 +1,5 @@
 name: CI/CD как код
+run-name: "CI/CD с локальной сборкой #${{ github.run_number }} · попытка ${{ github.run_attempt }}"
 
 on:
   push:
@@ -73,6 +74,10 @@ jobs:
           $run = $results.'test-run'
 
           "## Результаты тестирования" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "- Номер запуска: **#$env:GITHUB_RUN_NUMBER**" >> $env:GITHUB_STEP_SUMMARY
+          "- Попытка: **$env:GITHUB_RUN_ATTEMPT**" >> $env:GITHUB_STEP_SUMMARY
+          "- Обработчик: **$env:RUNNER_NAME** (self-hosted)" >> $env:GITHUB_STEP_SUMMARY
           "" >> $env:GITHUB_STEP_SUMMARY
           "| Всего | Успешно | Ошибки |" >> $env:GITHUB_STEP_SUMMARY
           "| ---: | ---: | ---: |" >> $env:GITHUB_STEP_SUMMARY
