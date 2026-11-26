@@ -30,7 +30,7 @@ env:
 jobs:
   build:
     name: Build - сборка и тестирование
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, Windows, X64, student-local]
     timeout-minutes: 10
 
     steps:
@@ -59,23 +59,43 @@ jobs:
           --no-build
           -- TestResults/test-results.xml
 
-      - name: Подготовить пакет поставки
-        shell: bash
+      - name: Добавить результаты тестов в сводку
+        if: always()
+        shell: pwsh
         run: |
-          mkdir -p artifacts/drop/web
-          dotnet publish src/StudentProject.Web/StudentProject.Web.csproj \
-            --configuration "${CONFIGURATION}" \
-            --no-restore \
-            --output artifacts/drop/web
-          cp Dockerfile artifacts/drop/Dockerfile
-          cp TestResults/test-results.xml artifacts/drop/test-results.xml
-          cat > artifacts/drop/deployment-manifest.json <<EOF
-          {
-            "repository": "${GITHUB_REPOSITORY}",
-            "commit": "${GITHUB_SHA}",
-            "runNumber": "${GITHUB_RUN_NUMBER}"
+          if (-not (Test-Path "TestResults/test-results.xml")) {
+            "## Результаты тестирования" >> $env:GITHUB_STEP_SUMMARY
+            "Файл результатов не создан." >> $env:GITHUB_STEP_SUMMARY
+            exit 0
           }
-          EOF
+
+          [xml]$results = Get-Content "TestResults/test-results.xml"
+          $run = $results.'test-run'
+
+          "## Результаты тестирования" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| Всего | Успешно | Ошибки |" >> $env:GITHUB_STEP_SUMMARY
+          "| ---: | ---: | ---: |" >> $env:GITHUB_STEP_SUMMARY
+          "| $($run.total) | $($run.passed) | $($run.failed) |" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Подготовить пакет поставки
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "artifacts/drop/web" | Out-Null
+          dotnet publish src/StudentProject.Web/StudentProject.Web.csproj `
+            --configuration $env:CONFIGURATION `
+            --no-restore `
+            --output artifacts/drop/web
+          Copy-Item Dockerfile artifacts/drop/Dockerfile
+          Copy-Item TestResults/test-results.xml artifacts/drop/test-results.xml
+
+          $manifest = [ordered]@{
+            repository = $env:GITHUB_REPOSITORY
+            commit = $env:GITHUB_SHA
+            runNumber = $env:GITHUB_RUN_NUMBER
+          } | ConvertTo-Json
+
+          $manifest | Set-Content -Encoding utf8 artifacts/drop/deployment-manifest.json
 
       - name: Опубликовать артефакт сборки
         uses: actions/upload-artifact@v7

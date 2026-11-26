@@ -12,7 +12,7 @@ permissions:
 jobs:
   inspect-runner:
     name: Проверка возможностей обработчика
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows, X64, student-local]
     timeout-minutes: 10
 
     steps:
@@ -40,6 +40,7 @@ jobs:
 
           $capabilities = [ordered]@{
             "Имя обработчика" = $env:RUNNER_NAME
+            "Тип обработчика" = "self-hosted (локальный компьютер)"
             "Операционная система" = $os.Caption
             "Версия ОС" = $os.Version
             "Архитектура" = $env:RUNNER_ARCH
