@@ -1,4 +1,5 @@
 name: Проверка Windows-обработчика
+run-name: "Локальная проверка #${{ github.run_number }} · попытка ${{ github.run_attempt }}"
 
 on:
   workflow_dispatch:
@@ -12,7 +13,7 @@ permissions:
 jobs:
   inspect-runner:
     name: Проверка возможностей обработчика
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows, X64, student-local]
     timeout-minutes: 10
 
     steps:
@@ -39,7 +40,10 @@ jobs:
           $computer = Get-CimInstance Win32_ComputerSystem
 
           $capabilities = [ordered]@{
+            "Номер запуска" = "#$env:GITHUB_RUN_NUMBER"
+            "Номер попытки" = $env:GITHUB_RUN_ATTEMPT
             "Имя обработчика" = $env:RUNNER_NAME
+            "Тип обработчика" = "self-hosted (локальный компьютер)"
             "Операционная система" = $os.Caption
             "Версия ОС" = $os.Version
             "Архитектура" = $env:RUNNER_ARCH
